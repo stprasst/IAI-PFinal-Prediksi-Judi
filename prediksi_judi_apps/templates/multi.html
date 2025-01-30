@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi Link Check</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        async function processUrls() {
+            const urls = document.getElementById('url-input').value.split('\n').filter(url => url.trim());
+            const resultsTable = document.getElementById('results-table');
+            const tbody = resultsTable.querySelector('tbody');
+            tbody.innerHTML = '';
+            
+            for(const url of urls) {
+                const row = document.createElement('tr');
+                row.className = 'border-b';
+                row.innerHTML = `
+                    <td class="p-3">${url}</td>
+                    <td class="p-3"><span class="px-2 py-1 rounded bg-gray-100">Processing...</span></td>
+                    <td class="p-3"><span class="px-2 py-1 rounded bg-gray-100">-</span></td>
+                `;
+                tbody.appendChild(row);
+
+                try {
+                    const formData = new FormData();
+                    formData.append('url', url.trim());
+                    
+                    const response = await fetch('/check', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    
+                    row.innerHTML = `
+                        <td class="p-3">${url}</td>  <!-- Gunakan variabel URL dari loop -->
+                        <td class="p-3">
+                            <span class="px-2 py-1 rounded ${result.status === 200 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                ${result.status || 'Error'}
+                            </span>
+                        </td>
+                        <td class="p-3">
+                            <span class="px-2 py-1 rounded ${result.prediction === 'Gambling' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">
+                                ${result.prediction || result.error}
+                            </span>
+                        </td>
+                    `;
+                } catch(error) {
+                    row.innerHTML = `
+                        <td class="p-3">${url}</td>  <!-- Gunakan variabel URL dari loop -->
+                        <td class="p-3"><span class="px-2 py-1 rounded bg-red-100 text-red-800">Error</span></td>
+                        <td class="p-3">${error.message}</td>
+                    `;
+                }
+                                
+                // Delay sesuai setting
+                await new Promise(resolve => setTimeout(resolve, {{ DELAY * 1000 }}));
+            }
+        }
+
+        function sortTable(columnIndex, type) {
+            const table = document.getElementById('results-table');
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            
+            rows.sort((a, b) => {
+                const aVal = a.cells[columnIndex].textContent;
+                const bVal = b.cells[columnIndex].textContent;
+                
+                if(type === 'number') {
+                    return parseInt(aVal) - parseInt(bVal);
+                }
+                return aVal.localeCompare(bVal);
+            });
+
+            rows.forEach(row => tbody.appendChild(row));
+        }
+    </script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-12 max-w-4xl">
+        <div class="bg-white rounded-lg shadow-lg p-8">
+            <a href="/" class="text-blue-500 hover:text-blue-600 mb-4 inline-block">← Kembali ke Beranda</a>
+            <h1 class="text-3xl font-bold text-gray-800 mb-8">Pengecekan Multiple Link</h1>
+            
+            <div class="mb-8">
+                <textarea id="url-input" 
+                        class="w-full p-3 border rounded-lg mb-4" 
+                        rows="5"
+                        placeholder="Masukkan URL (satu per baris)"></textarea>
+                <button onclick="processUrls()" 
+                        class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg">
+                    Periksa Semua
+                </button>
+            </div>
+
+            <div class="bg-gray-50 p-6 rounded-lg">
+                <h2 class="text-xl font-semibold mb-4">Hasil Pengecekan:</h2>
+                <div class="overflow-x-auto">
+                    <table id="results-table" class="w-full">
+                        <thead>
+                            <tr class="bg-gray-200">
+                                <th class="p-3 text-left cursor-pointer" onclick="sortTable(0, 'text')">URL ⬍</th>
+                                <th class="p-3 text-left cursor-pointer" onclick="sortTable(1, 'number')">Status ⬍</th>
+                                <th class="p-3 text-left cursor-pointer" onclick="sortTable(2, 'text')">Hasil ⬍</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Hasil akan muncul di sini -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

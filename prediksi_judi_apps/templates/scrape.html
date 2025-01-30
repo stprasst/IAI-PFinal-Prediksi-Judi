@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scrape Links</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        async function startChecking() {
+            const links = {{ links_to_check | tojson | safe }} || [];
+            const tbody = document.querySelector('#check-results tbody');
+            tbody.innerHTML = '';
+            
+            for(const link of links) {
+                const row = document.createElement('tr');
+                row.className = 'border-b';
+                row.innerHTML = `
+                    <td class="p-3">${link}</td>
+                    <td class="p-3"><span class="px-2 py-1 rounded bg-gray-100">Processing...</span></td>
+                    <td class="p-3"><span class="px-2 py-1 rounded bg-gray-100">-</span></td>
+                `;
+                tbody.appendChild(row);
+
+                try {
+                    const formData = new FormData();
+                    formData.append('url', link);
+                    
+                    const response = await fetch('/check_link', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    
+                    row.innerHTML = `
+                        <td class="p-3">${result.url}</td>
+                        <td class="p-3">
+                            <span class="px-2 py-1 rounded ${result.status === 200 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                ${result.status || 'Error'}
+                            </span>
+                        </td>
+                        <td class="p-3">
+                            <span class="px-2 py-1 rounded ${result.prediction === 'Gambling' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">
+                                ${result.prediction}
+                            </span>
+                        </td>
+                    `;
+                } catch(error) {
+                    row.innerHTML = `
+                        <td class="p-3">${link}</td>
+                        <td class="p-3"><span class="px-2 py-1 rounded bg-red-100 text-red-800">Error</span></td>
+                        <td class="p-3">${error.message}</td>
+                    `;
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, {{ DELAY * 1000 }}));
+            }
+        }
+        
+        // Auto jalankan pengecekan jika ada links_to_check
+        window.addEventListener('DOMContentLoaded', () => {
+            {% if links_to_check %}
+            startChecking();
+            {% endif %}
+        });
+    </script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-12 max-w-6xl">
+        <div class="bg-white rounded-lg shadow-lg p-8">
+            <a href="/" class="text-blue-500 hover:text-blue-600 mb-4 inline-block">← Kembali ke Beranda</a>
+            <h1 class="text-3xl font-bold text-gray-800 mb-8">Pencarian Lanjut</h1>
+            
+            <form method="POST" class="mb-8">
+                <input type="hidden" name="action" id="formAction" value="search_only">
+                <div class="grid gap-4 mb-4">
+                    <input type="text" 
+                           name="domain" 
+                           placeholder="Domain target (contoh: example.com)" 
+                           class="p-3 border rounded-lg"
+                           required>
+                    <input type="text" 
+                           name="query" 
+                           placeholder="{{ default_query }}"
+                           class="p-3 border rounded-lg"
+                           value="{{ request.form.query or '' }}">
+                    <p class="text-sm text-gray-500">
+                        * Maksimal {{ MAX_RESULTS }} hasil pencarian. Kosongkan query untuk menggunakan default
+                    </p>
+                </div>
+                
+                <div class="flex gap-4">
+                    <button type="submit" 
+                            onclick="document.getElementById('formAction').value='search_only'"
+                            class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg">
+                        Cari Link Saja
+                    </button>
+                    
+                    <button type="submit" 
+                            onclick="document.getElementById('formAction').value='search_and_check'"
+                            class="bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 rounded-lg">
+                        Cari dan Periksa Link
+                    </button>
+                </div>
+            </form>
+
+            {% if search_results %}
+            <div class="bg-gray-50 p-6 rounded-lg">
+                <h2 class="text-xl font-semibold mb-4">Hasil Pencarian ({{ search_results|length }} link):</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <tbody>
+                            {% for link in search_results %}
+                            <tr class="border-b">
+                                <td class="p-3">{{ link }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if links_to_check %}
+            <div class="bg-gray-50 p-6 rounded-lg mt-8">
+                <h2 class="text-xl font-semibold mb-4">Proses Pengecekan:</h2>
+                <div class="overflow-x-auto">
+                    <table id="check-results" class="w-full">
+                        <thead>
+                            <tr class="bg-gray-200">
+                                <th class="p-3 text-left">URL</th>
+                                <th class="p-3 text-left">Status</th>
+                                <th class="p-3 text-left">Hasil</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Hasil akan diisi oleh JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

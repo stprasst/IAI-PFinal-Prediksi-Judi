@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Single Link Check</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-12 max-w-4xl">
+        <div class="bg-white rounded-lg shadow-lg p-8">
+            <a href="/" class="text-blue-500 hover:text-blue-600 mb-4 inline-block">← Kembali ke Beranda</a>
+            <h1 class="text-3xl font-bold text-gray-800 mb-8">Pengecekan Single Link</h1>
+            
+            <form method="POST" class="mb-8">
+                <div class="flex gap-4">
+                    <input type="url" name="url" placeholder="Masukkan URL website" 
+                           class="flex-1 p-3 border rounded-lg" required>
+                    <button type="submit" 
+                            class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg">
+                        Periksa
+                    </button>
+                </div>
+            </form>
+
+            {% if details %}
+            <div class="bg-gray-50 p-6 rounded-lg">
+                <h2 class="text-xl font-semibold mb-4">Hasil Pengecekan:</h2>
+                <div class="space-y-3">
+                    <p><span class="font-medium">URL:</span> {{ details.url }}</p>
+                    <p><span class="font-medium">Domain:</span> {{ details.domain }}</p>
+                    <p><span class="font-medium">Status:</span> 
+                        <span class="px-2 py-1 rounded {{ 'bg-green-100 text-green-800' if details.status == 200 else 'bg-red-100 text-red-800' }}">
+                            {{ details.status }}
+                        </span>
+                    </p>
+                    <p><span class="font-medium">Prediksi:</span> 
+                        <span class="px-2 py-1 rounded {{ 'bg-red-100 text-red-800' if details.prediction == 'Gambling' else 'bg-green-100 text-green-800' }}">
+                            {{ details.prediction }}
+                        </span>
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
